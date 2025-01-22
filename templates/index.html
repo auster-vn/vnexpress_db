@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VNExpress Processing Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+
+        h3 {
+            color: #4CAF50;
+        }
+
+        .container {
+            width: 80%;
+            margin: 20px auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        p {
+            font-size: 16px;
+            margin: 15px 0;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 4px;
+            margin-left: 10px;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        input[type="text"] {
+            padding: 8px;
+            font-size: 16px;
+            width: 250px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        td {
+            background-color: #f9f9f9;
+        }
+
+        #summaryProgress {
+            font-style: italic;
+            color: #555;
+        }
+
+        #crawlProgress, #contentProgress {
+            font-style: italic;
+            color: #888;
+        }
+
+        .btn-group {
+            margin-top: 20px;
+        }
+
+    </style>
+    <script>
+        function runScript(endpoint, buttonId, progressId) {
+            document.getElementById(buttonId).disabled = true;
+            document.getElementById(progressId).innerText = "Running...";
+            fetch(endpoint, { method: 'POST' })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    document.getElementById(progressId).innerText = data.message;
+                })
+                .catch(error => {
+                    document.getElementById(progressId).innerText = "Error: " + error.message;
+                })
+                .finally(() => {
+                    document.getElementById(buttonId).disabled = false;
+                });
+        }
+
+        function runSummary() {
+            const apiKey = document.getElementById("apiKey").value;
+            document.getElementById("summaryBtn").disabled = true;
+            document.getElementById("summaryProgress").innerText = "Running...";
+            fetch('/run_summary', {
+                method: 'POST',
+                body: new URLSearchParams({ 'api_key': apiKey }),
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById("summaryProgress").innerText = data.message;
+            })
+            .catch(error => {
+                document.getElementById("summaryProgress").innerText = "Error: " + error.message;
+            })
+            .finally(() => {
+                document.getElementById("summaryBtn").disabled = false;
+            });
+        }
+
+        function displaySummary() {
+            fetch('/get_summary_data')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const tableBody = document.getElementById("summaryTableBody");
+                    tableBody.innerHTML = "";  // Clear existing content
+                    data.forEach(row => {
+                        const tr = document.createElement("tr");
+                        const titleTd = document.createElement("td");
+                        titleTd.textContent = row.title;
+                        const contentTd = document.createElement("td");
+                        contentTd.textContent = row.content;
+                        tr.appendChild(titleTd);
+                        tr.appendChild(contentTd);
+                        tableBody.appendChild(tr);
+                    });
+                })
+                .catch(error => {
+                    console.error("Error fetching summary data:", error);
+                });
+        }
+    </script>
+</head>
+<body>
+
+<div class="container">
+    <h3>VNExpress Processing Dashboard</h3>
+
+    <div class="btn-group">
+        <p>Get JSON VNExpress 
+            <button id="crawlBtn" onclick="runScript('/run_crawl', 'crawlBtn', 'crawlProgress')">Run Crawl</button> 
+            <span id="crawlProgress"></span>
+        </p>
+
+        <p>Get content from JSON 
+            <button id="contentBtn" onclick="runScript('/run_content', 'contentBtn', 'contentProgress')">Run Content</button> 
+            <span id="contentProgress"></span>
+        </p>
+
+        <p>Summary Content 
+            <input type="text" id="apiKey" placeholder="Enter Gemini API Key"> 
+            <button id="summaryBtn" onclick="runSummary()">Run Summary</button> 
+            <span id="summaryProgress"></span>
+        </p>
+    </div>
+
+    <div class="btn-group">
+        <h3>Article Summaries</h3>
+        <button id="displayBtn" onclick="displaySummary()">Display Summaries</button>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Content</th>
+                </tr>
+            </thead>
+            <tbody id="summaryTableBody">
+                <!-- Data will be populated here after clicking "Display Summaries" -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+</body>
+</html>
+
